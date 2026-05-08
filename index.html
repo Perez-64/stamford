@@ -1,110 +1,125 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="./styles.css" rel="stylesheet" type="text/css">
-    <link rel="icon" type="image/png" href="./images/favicon_io/favicon.ico" >  
-<!-- Leaflet API CSS and JavaScript connection-->
-    <link 
-    rel="stylesheet" 
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-    />
+<p>Edited by reetiz</p>
+<p>
+  <!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link href="./styles.css" rel="stylesheet" type="text/css" />
+      <link
+        rel="icon"
+        type="image/png"
+        href="./images/favicon_io/favicon.ico"
+      />
+      <!-- Leaflet API CSS and JavaScript connection-->
+      <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+      />
 
-    <script 
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin="">
-    </script>
+      <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+      ></script>
 
-    <title>Radio Map</title>
-</head>
-<body>
-    <header>
+      <title>Radio Map</title>
+    </head>
+    <body>
+      <header>
         <a href="https://p48marketing.com/">
-            <img src="./images/P48_Logo.png" />
+          <img src="./images/P48_Logo.png" />
         </a>
         <nav class="navbar">
-            <ul>
-                <li>Data Sourcing</li>
-                <li>About Us</li>
-                <li>Contact Us</li>
-                <li>Return</li>
-                <li onclick="toggleMarkers()">Show TEMPORARY Locations</li>
-            </ul>
+          <ul>
+            <li>Data Sourcing</li>
+            <li>About Us</li>
+            <li>Contact Us</li>
+            <li>Return</li>
+            <li onclick="toggleMarkers()">Show TEMPORARY Locations</li>
+          </ul>
         </nav>
-    </header>
+      </header>
 
-    <main>
+      <main>
         <aside id="filter-bar">
-            <button id="filter-toggle" class="toggle-button">
-                <span class="arrow">▶</span>
-            </button>
-            <!-- Radio Station Selection-->
-            <section class="section-reveal" id="radio-station">
-                <button class="reveal">Radio Station</button>
+          <button id="filter-toggle" class="toggle-button">
+            <span class="arrow">▶</span>
+          </button>
+          <!-- Radio Station Selection-->
+          <section class="section-reveal" id="radio-station">
+            <button class="reveal">Radio Station</button>
 
-                <div class="content">
-                    <label for="station-search" >Search Stations</label>
-                    <input type="text" id="station-search" class="search" placeholder="Search stations..." autocomplete="off" />
-                    <ul id="station-list" class="hidden dropdown-list">
-                        </ul>
+            <div class="content">
+              <label for="station-search">Search Stations</label>
+              <input
+                type="text"
+                id="station-search"
+                class="search"
+                placeholder="Search stations..."
+                autocomplete="off"
+              />
+              <ul id="station-list" class="hidden dropdown-list"></ul>
 
-                    <label for="genre-search">Search Genres</label>
-                    <input type="text" id="genre-search" class="search" placeholder="E.x. Top 40... " autocomplete="off" />
-                    <ul id="genre-list" class="hidden dropdown-list">
-                        </ul>
+              <label for="genre-search">Search Genres</label>
+              <input
+                type="text"
+                id="genre-search"
+                class="search"
+                placeholder="E.x. Top 40... "
+                autocomplete="off"
+              />
+              <ul id="genre-list" class="hidden dropdown-list"></ul>
 
-                    <!-- Radio Broadcasting Type -->
-                    <fieldset>
-                        <legend>Choose Broadcasting Type</legend>
-                        <input type="radio" id="radio-am" name="broadcast-select"/>
-                        <label for="radio-am" >AM</label>
+              <!-- Radio Broadcasting Type -->
+              <fieldset>
+                <legend>Choose Broadcasting Type</legend>
+                <input type="radio" id="radio-am" name="broadcast-select" />
+                <label for="radio-am">AM</label>
 
-                        <input type="radio" id="radio-pm" name="broadcast-select"/>
-                        <label for="radio-pm" >PM</label>
+                <input type="radio" id="radio-pm" name="broadcast-select" />
+                <label for="radio-pm">PM</label>
 
-                        <input type="radio" id="radio-both" name="broadcast-select"/>
-                        <label for="radio-both" >Both</label>
-                    </fieldset>
+                <input type="radio" id="radio-both" name="broadcast-select" />
+                <label for="radio-both">Both</label>
+              </fieldset>
+            </div>
+          </section>
 
-                </div>
-            </section>
+          <!-- Location Selection-->
+          <section class="section-reveal">
+            <button class="reveal">Location</button>
 
-            <!-- Location Selection-->
-            <section class="section-reveal">
-                <button class="reveal">Location</button>
-                
-                <div class="content">
-                    <p>some text</p>
-                    <p>lorem is </p>
-                </div>
+            <div class="content">
+              <p>some text</p>
+              <p>lorem is</p>
+            </div>
             <!-- -->
-            </section>
-            <section class="section-reveal">
-                <button class="reveal">Something</button>
+          </section>
+          <section class="section-reveal">
+            <button class="reveal">Something</button>
 
-                <div class="content">
-                    <p>some text</p>
-                    <p>lorem is </p>
-                </div>
-            </section>
-            <section class="section-reveal">
-                <button class="reveal">Something else</button>
+            <div class="content">
+              <p>some text</p>
+              <p>lorem is</p>
+            </div>
+          </section>
+          <section class="section-reveal">
+            <button class="reveal">Something else</button>
 
-                <div class="content">
-                    <p>some text</p>
-                    <p>lorem is </p>
-                </div>
-            </section>
+            <div class="content">
+              <p>some text</p>
+              <p>lorem is</p>
+            </div>
+          </section>
         </aside>
-        
+
         <div id="map"></div>
+      </main>
 
-    </main>
-
-    <script src="index.js"></script>
-</body>
-</html>
+      <script src="index.js"></script>
+    </body>
+  </html>
+</p>
