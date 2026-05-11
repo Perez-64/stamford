@@ -24,6 +24,18 @@ HEADERS = {
 
 REQUEST_DELAY = 1.5
 
+CLASS_RADIUS_KM = {
+    "A": 28,
+    "B1": 45,
+    "B": 65,
+    "C3": 39,
+    "C2": 52,
+    "C1": 72,
+    "C0": 83,
+    "C": 92,
+    "D": 6
+}
+
 #first function - fetches url
 def fetch_stations(url):
     print(f"Fetching data from: {url}")
@@ -54,6 +66,7 @@ def parse_stations(raw_text):
             call_sign = fields[0].strip()
             frequency = fields[1].strip()
             service = fields[2].strip()
+            station_class = fields[6].strip()
             status = fields[8].strip()
             
             city = fields[9].strip()
@@ -93,6 +106,7 @@ def parse_stations(raw_text):
                 "owner": owner,
                 "city": city,
                 "state": state,
+                "station_class": station_class,
                 "transmitter_location": {
                     "wgs84_lat": latitude,
                     "wgs84_lon": longitude
@@ -155,6 +169,7 @@ def main():
                 unique_frequencies.add(station["frequency"])
                 unique_owners.add(station["owner"])
                 unique_services.add(station["service"])
+                radius_km = CLASS_RADIUS_KM.get(station_class, 28)
                 
                 feature = {
                     "type": "Feature",
@@ -172,7 +187,9 @@ def main():
                         "service": station["service"],
                         "owner": station["owner"],
                         "city": station["city"],
-                        "state": station["state"]
+                        "state": station["state"],
+                        "station_class": station["station_class"],
+                        "radius_km": radius_km
                     }
                 }
                 geoJson["features"].append(feature)
