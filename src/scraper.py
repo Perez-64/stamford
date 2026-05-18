@@ -169,7 +169,7 @@ def main():
                 unique_frequencies.add(station["frequency"])
                 unique_owners.add(station["owner"])
                 unique_services.add(station["service"])
-                radius_km = CLASS_RADIUS_KM.get(station_class, 28)
+                radius_km = CLASS_RADIUS_KM.get(station['station_class'], 28)
                 
                 feature = {
                     "type": "Feature",

@@ -64,6 +64,15 @@ header nav ul li {
     border-radius: 8px; 
 }
 
+header nav ul li a { 
+    text-decoration: none; 
+    color: var(--text-primary);
+}
+
+header nav ul li a:hover {
+    color: white; 
+}
+
 header nav ul li:hover {
     transition: all 0.3s ease-out; 
     transform: scale(1.1);
