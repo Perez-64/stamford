@@ -130,6 +130,18 @@ def main():
     print("Starting FCC station scraper")
 
     VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]
+    
+    combinedGeoJson = {
+        "type": "FeatureCollection",
+        "features": [], 
+        "metadata": {}, 
+    } 
+    
+    unique_cities = {}
+    unique_owners = set()
+    unique_frequencies = set()
+    unique_services = set()
+    
 
     for index, state in enumerate(VALID_STATES): 
         try:
@@ -151,25 +163,25 @@ def main():
 
             all_stations = fm_stations + am_stations
             print(f"Total stations found: {len(all_stations)}")
+
+            seen_ids = set()
+            unique_stations = []
+            for station in all_stations: 
+                if station['facility_id'] not in seen_ids: 
+                    seen_ids.add(station['facility_id'])
+                    unique_stations.append(station)
+            all_stations = unique_stations
             
-            unique_cities = set()
-            unique_owners = set()
-            unique_frequencies = set()
-            unique_services = set()
-
-            geoJson = {
-                "type": "FeatureCollection",
-                "features": [],
-                "metadata": {},
-            }
-
             #Build GeoJson structure
             for station in all_stations:
-                unique_cities.add(station["city"])
+                if station['state'] not in unique_cities: 
+                    unique_cities[station['state']] = set()
+                unique_cities[station['state']].add(station['city'])
+                
                 unique_frequencies.add(station["frequency"])
                 unique_owners.add(station["owner"])
                 unique_services.add(station["service"])
-                radius_km = CLASS_RADIUS_KM.get(station_class, 28)
+                radius_km = CLASS_RADIUS_KM.get(station['station_class'], 28)
                 
                 feature = {
                     "type": "Feature",
@@ -192,27 +204,28 @@ def main():
                         "radius_km": radius_km
                     }
                 }
-                geoJson["features"].append(feature)
-                
-            geoJson["metadata"] = {
-                "cities": sorted(list(unique_cities)), 
-                "frequencies": sorted(list(unique_frequencies), key = clean_frequency), 
-                "owners": sorted(list(unique_owners)),
-                "services": sorted(list(unique_services))
-            }
+                combinedGeoJson["features"].append(feature)
 
-            #Save to file
-            output_file = target_directory / f"{state.lower()}_radio_stations.geojson"
-            with open(output_file, "w") as f:
-                json.dump(geoJson, f, indent=2)
-            
-            print(f"Done! {len(all_stations)} stations saved to {output_file}")
-        
             time.sleep(REQUEST_DELAY * 2)
         except Exception as e: 
             print(f"ERROR: {state} THROWS {e}")
             print("Moving to next state...")
             continue
+                
+    combinedGeoJson["metadata"] = {
+        "cities": { state: sorted(list(cities)) for state, cities in unique_cities.items() },
+        "frequencies": sorted(list(unique_frequencies), key = clean_frequency), 
+        "owners": sorted(list(unique_owners)),
+        "services": sorted(list(unique_services)),
+        "states": sorted(list(VALID_STATES)),
+    }
+
+    #Save to file
+    output_file = target_directory / f"all_radio_stations.geojson"
+    with open(output_file, "w") as f:
+        json.dump(combinedGeoJson, f, indent=2)
+    
+    print(f"Done! {len(all_stations)} stations saved to {output_file}")
 
 if __name__ == "__main__":
     main()

@@ -37,17 +37,27 @@ L.control.zoom({
 // ==========================================
 
 // Defining Filters
-let activeFilters = {
+const DEFAULT_FILTERS = {
     city: "", 
-    service: "", 
-    owner: ""
+    service: [], 
+    owner: "", 
+    state: ""
 }
+
+let activeFilters = { ...DEFAULT_FILTERS, service: [] };
 
 function applyFilters(feature) {
     return Object.entries(activeFilters).every(([type, filterValue]) => {
+        if (Array.isArray(filterValue) && filterValue.length === 0) return true;
         if (!filterValue || filterValue === "--ALL--") return true; 
+        if (!STATION_MAP[type]) return true; 
 
         const actualValue = STATION_MAP[type](feature); 
+
+        if (Array.isArray(filterValue)) {
+            return filterValue.includes(String(actualValue).toUpperCase());
+        }
+
         return String(actualValue).toLowerCase() === String(filterValue).toLowerCase(); 
     })
 }
@@ -87,6 +97,10 @@ filterBarToggle.addEventListener('click', () => {
 
 const STATION_MAP = {
     id: (f) => f.properties.id,
+    latlng: (f) => {
+        const coords = f.geometry.coordinates; 
+        return [coords[1], coords[0]];
+    },
     call_sign: (f) => f.properties.call_sign, 
     city: (f) => f.properties.city, 
     state: (f) => f.properties.state, 
@@ -94,6 +108,7 @@ const STATION_MAP = {
     status: (f) => f.properties.status,
     owner: (f) => f.properties.owner,
     service: (f) => f.properties.service,
+    radius: (f) => f.properties.radius_km,
 }
 
 // ==========================================
@@ -101,43 +116,98 @@ const STATION_MAP = {
 // ==========================================
 
 let licenseeData; 
-const limit = 8; 
+const limit = 12; 
 
-const input = document.getElementById("station-search");
-const list = document.getElementById("station-list"); 
+const stationInput = document.getElementById("station-search");
+const stateInput = document.getElementById("state-search");
+const cityInput = document.getElementById("city-search");
+const stationList = document.getElementById("station-list"); 
+const stateList = document.getElementById("state-list"); 
+const cityList = document.getElementById("city-list");
 
-function displayList(filterText = "") {
-    const filteredData = licenseeData.filter(item => item.toLowerCase().includes(filterText.toLowerCase())); 
+function displayList(listElement, inputElement, data, filterText = "", onSelect) {
+    const filteredData = data.filter(item => item.toLowerCase().includes(filterText.toLowerCase()));
+    const topResults = filteredData.slice(0, limit); 
 
-    let topEightResults = filteredData.slice(0, limit);
-    
-    list.innerHTML = ""; 
+    listElement.innerHTML = ""; 
 
-    if (topEightResults.length > 0) {
-        // Reveals the list
-        list.classList.remove("hidden"); 
-        topEightResults.forEach(listItem => {
-            let li = document.createElement('li'); 
+    if (topResults.length > 0) {
+        listElement.classList.remove("hidden"); 
+        topResults.forEach(listItem => {
+            let li = document.createElement("li"); 
             li.textContent = listItem; 
-            li.onclick = () => {
-                input.value = listItem; 
-                list.classList.add('hidden'); 
-                onFilterChange("owner", listItem)
-            };
-            list.appendChild(li); 
+            li.addEventListener("mousedown", () => {
+                inputElement.value = listItem; 
+                listElement.classList.add("hidden");
+                onSelect(listItem)
+            });
+
+            listElement.appendChild(li);
         });
     } else {
-        list.classList.add('hidden'); 
+        listElement.classList.add('hidden');
     }
 }
 
-input.addEventListener('input', (event) => displayList(event.target.value)); 
+stationInput.addEventListener('input', (e) => {
+    if (!stationData) return;
+    displayList(stationList, stationInput, stationData, e.target.value, (selected) => onFilterChange("owner", selected));
+});
 
-document.addEventListener('click', (target) => {
-    if (target.target !== input) {
-        list.classList.add('hidden'); 
+stateInput.addEventListener('input', (e) => {
+    if (!stateData) return;
+    displayList(stateList, stateInput, stateData, e.target.value, (selected) => onStateSelect(selected));
+});
+
+cityInput.addEventListener('input', (e) => {
+    if (!cityData) return;
+    displayList(cityList, cityInput, cityData, e.target.value, (selected) => onFilterChange("city", selected));
+});
+
+document.addEventListener('click', (event) => {
+    const inputs = [stationInput, stateInput, cityInput];
+    const lists = [stationList, stateList, cityList];
+
+    lists.forEach((list, i) => {
+        if (event.target !== inputs[i] && event.target !== list) {
+            list.classList.add('hidden');
+        }
+    });
+});
+
+function setCheckbox(id, value, checked) {
+    document.getElementById(id).checked = checked; 
+    if (checked && !activeFilters.service.includes(value)) {
+        activeFilters.service.push(value); 
+    } else if (!checked) {
+        const index = activeFilters.service.indexOf(value); 
+        if (index > -1) activeFilters.service.splice(index, 1);
     }
-})
+}
+
+// ==========================================
+// 4.5 Radio Station Service
+// ==========================================
+const checkBoxes = document.querySelectorAll('fieldset input[type="checkbox"]'); 
+
+checkBoxes.forEach(checkbox => {
+    checkbox.addEventListener("change", function (e) {
+        const checkBoxText = e.target.nextElementSibling.textContent.trim(); 
+
+        if (e.target.checked) {
+            console.log(`${e.target.nextElementSibling.textContent.trim()} was checked`);
+
+            if (!activeFilters["service"].includes(checkBoxText)) {
+                onFilterChange("service", checkBoxText, "array");
+            }            
+        } else {
+            console.log(`${e.target.nextElementSibling.textContent.trim()} was checked`);
+            if (activeFilters["service"].includes(checkBoxText)) {
+                onFilterChange("service", checkBoxText, "array", true);
+            }          
+        }
+    });
+});
 
 // ==========================================
 // 5. Leaflet Layer Management
@@ -146,37 +216,85 @@ document.addEventListener('click', (target) => {
 /**
  * @important Make changes here in the future. This is hard-coded information
  */ 
-let locationMarkersLayer = L.geoJSON(); 
-let stations = null; 
+let geoJsonData = null;
 let showMarkers = false; 
-let activeCircle = null; 
+let activeCircle = null
+
+const locationMarkersLayer = L.geoJSON(null, {
+    filter: feature => applyFilters(feature), 
+    onEachFeature: function (feature, layer) {
+        layer.on('click', function() {
+            if (activeCircle && map.hasLayer(activeCircle)) {
+                map.removeLayer(activeCircle); 
+            }
+
+            activeCircle = L.circle(STATION_MAP.latlng(feature), {
+                radius: STATION_MAP.radius(feature) * 1000, 
+                color: 'red', 
+                weight: 1, 
+                fillOpacity: 0.2
+            }).addTo(map);
+            
+            map.flyTo(STATION_MAP.latlng(feature), 9)
+        })
+
+        layer.bindPopup(`
+            <strong>${STATION_MAP.call_sign(feature)}</strong><br>
+            ${STATION_MAP.city(feature)}, ${STATION_MAP.state(feature)}<br>
+            ${STATION_MAP.owner(feature)}<br>
+            ${STATION_MAP.frequency(feature)} ${STATION_MAP.service(feature)}
+        `);
+    }
+}).addTo(map); 
 
 function updateMapFilters() {
-    if (!stations) return; 
-    
-    if (locationMarkersLayer && map.hasLayer(locationMarkersLayer)) {
-        map.removeLayer(locationMarkersLayer); 
+    if (!geoJsonData) {
+        return; 
     }
 
-    locationMarkersLayer = L.geoJSON(stations, {
-            filter: applyFilters,
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup(
-                    `
-                    <strong>${STATION_MAP.call_sign(feature)}</strong><br>
-                    ${STATION_MAP.city(feature)}, ${STATION_MAP.state(feature)}<br>
-                    ${STATION_MAP.owner(feature)}<br>
-                    ${STATION_MAP.frequency(feature)} ${STATION_MAP.service(feature)}
-                    `
-                );
-            }
-        }); 
+    locationMarkersLayer.clearLayers(); 
 
-    locationMarkersLayer.addTo(map);
+    if (activeCircle && map.hasLayer(activeCircle)) {
+        map.removeLayer(activeCircle); 
+    }
+
+    if (showMarkers) {
+        locationMarkersLayer.addData(geoJsonData); 
+    }
 }
 
-function onFilterChange(filterKey, newValue) {
+function onFilterChange(filterKey, newValue, type = null, clear = null) {
+    if (type == "array") {
+        if (clear) {
+            const index = activeFilters[filterKey].indexOf(newValue); 
+            activeFilters[filterKey].splice(index, 1); 
+        } else {
+            activeFilters[filterKey].push(newValue); 
+        }
+        
+        updateMapFilters();
+        return; 
+    } 
+
     activeFilters[filterKey] = newValue; 
+    updateMapFilters(); 
+}
+
+function clearFilters() {
+    activeFilters = { ...DEFAULT_FILTERS, service: [] }; 
+
+    checkBoxes.forEach(checkbox => {
+        checkbox.checked = false; 
+    })
+    stationInput.value = ""; 
+    stateInput.value = ""; 
+    cityInput.value = ""; 
+
+    document.getElementById("radio-am").checked = true;
+    activeFilters.service = ["AM"];
+
+    onStateSelect("OH");
+    stateInput.value = "OH";
     updateMapFilters(); 
 }
 
@@ -184,22 +302,26 @@ function showLocations() {
     locationMarkersLayer.addTo(map); 
     console.log("Location Markers added successfully!");
     showMarkers = true; 
+    updateMapFilters();
 }
 
 function hideMarkers() {
-    if (locationMarkersLayer && map.hasLayer(locationMarkersLayer)) {
-        map.removeLayer(locationMarkersLayer); 
-    }
-
-    if (activeCircle && map.hasLayer(activeCircle)) {
-        map.removeLayer(activeCircle); 
-    }
+    showMarkers = false; 
+    updateMapFilters();    
 
     if (map) {
         map.flyTo([40, -95.46], 5);
-    }
+    } 
+}
 
-    showMarkers = false; 
+function onStateSelect(state) {
+    if (state != "--ALL--") {
+        cityData = geoJsonData.metadata?.cities[state] || []; 
+    } else {
+        cityData = geoJsonData.metadata?.cities || [];
+    }
+    cityInput.value = "";
+    onFilterChange("state", state);
 }
 
 /**
@@ -207,11 +329,14 @@ function hideMarkers() {
  */
 
 function toggleMarkers() {
+    const toggleButton = document.getElementById("toggle-plots"); 
     if (showMarkers) {
         hideMarkers(); 
+        toggleButton.textContent = "Show Plots"
     } else {
         showLocations(); 
         map.flyTo([40.361667, -82.741667], 7);
+        toggleButton.textContent = "Hide Plots"
     }
 }
 
@@ -220,22 +345,30 @@ function toggleMarkers() {
 // ==========================================
 
 async function loadData() { 
-    const filePath = './radio_data/oh_radio_stations.geojson'; 
+    const filePath = './radio_data/all_radio_stations.geojson'; 
 
     try {
         const response = await fetch(filePath); 
         
         if (!response.ok) throw new Error(`HTTP Error! Status: ${response.status}`); 
 
-        stations = await response.json(); 
+        geoJsonData = await response.json(); 
 
-        licenseeData = stations.metadata?.owners || []; 
-        licenseeData.unshift("--ALL--");
+        stationData = geoJsonData.metadata?.owners || []; 
+        stationData = [...new Set(stationData)];
+        stationData.unshift("--ALL--");
 
-        updateMapFilters(); 
+        stateData = geoJsonData.metadata?.states || []; 
+        stateData = [...new Set(stateData)];
+        stateData.unshift("--ALL--")
 
-        locationMarkersLayer.addData(stations);
-        locationMarkersLayer.addTo(map);  
+        cityData = geoJsonData.metadata?.cities['OH'] || []; 
+        cityData.unshift("--ALL--");
+
+        clearFilters(); 
+        console.log(activeFilters);
+        toggleMarkers();
+
         console.log("GeoJSON data loaded and added to layer successfully!");
         
     } catch (error) {
