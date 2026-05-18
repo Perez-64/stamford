@@ -119,6 +119,8 @@ let licenseeData;
 const limit = 8; 
 
 const input = document.getElementById("station-search");
+const stateInput = document.getElementById("state-search");
+const cityInput = document.getElementById("city-search")
 const list = document.getElementById("station-list"); 
 
 function displayList(filterText = "") {
@@ -296,7 +298,7 @@ function toggleMarkers() {
 // ==========================================
 
 async function loadData() { 
-    const filePath = './radio_data/oh_radio_stations.geojson'; 
+    const filePath = './radio_data/all_radio_stations.geojson'; 
 
     try {
         const response = await fetch(filePath); 
@@ -309,7 +311,9 @@ async function loadData() {
         licenseeData.unshift("--ALL--");
 
         clearFilters(); 
+        document.getElementById("radio-am").checked = true; 
         onFilterChange("service", "AM", "array"); 
+        onFilterChange("state", "OH");
         toggleMarkers();
 
         console.log("GeoJSON data loaded and added to layer successfully!");

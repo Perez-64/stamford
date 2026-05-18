@@ -131,6 +131,18 @@ def main():
 
     VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]
 
+    combinedGeoJson = {
+        "type": "FeatureCollection",
+        "features": [], 
+        "metadata": {}, 
+    } 
+    
+    unique_cities = set()
+    unique_owners = set()
+    unique_frequencies = set()
+    unique_services = set()
+    
+
     for index, state in enumerate(VALID_STATES): 
         try:
             FM_URL, AM_URL = build_urls(state)
@@ -151,17 +163,6 @@ def main():
 
             all_stations = fm_stations + am_stations
             print(f"Total stations found: {len(all_stations)}")
-            
-            unique_cities = set()
-            unique_owners = set()
-            unique_frequencies = set()
-            unique_services = set()
-
-            geoJson = {
-                "type": "FeatureCollection",
-                "features": [],
-                "metadata": {},
-            }
 
             #Build GeoJson structure
             for station in all_stations:
@@ -192,27 +193,27 @@ def main():
                         "radius_km": radius_km
                     }
                 }
-                geoJson["features"].append(feature)
-                
-            geoJson["metadata"] = {
-                "cities": sorted(list(unique_cities)), 
-                "frequencies": sorted(list(unique_frequencies), key = clean_frequency), 
-                "owners": sorted(list(unique_owners)),
-                "services": sorted(list(unique_services))
-            }
+                combinedGeoJson["features"].append(feature)
 
-            #Save to file
-            output_file = target_directory / f"{state.lower()}_radio_stations.geojson"
-            with open(output_file, "w") as f:
-                json.dump(geoJson, f, indent=2)
-            
-            print(f"Done! {len(all_stations)} stations saved to {output_file}")
-        
             time.sleep(REQUEST_DELAY * 2)
         except Exception as e: 
             print(f"ERROR: {state} THROWS {e}")
             print("Moving to next state...")
             continue
+                
+    combinedGeoJson["metadata"] = {
+        "cities": sorted(list(unique_cities)), 
+        "frequencies": sorted(list(unique_frequencies), key = clean_frequency), 
+        "owners": sorted(list(unique_owners)),
+        "services": sorted(list(unique_services))
+    }
+
+    #Save to file
+    output_file = target_directory / f"all_radio_stations.geojson"
+    with open(output_file, "w") as f:
+        json.dump(combinedGeoJson, f, indent=2)
+    
+    print(f"Done! {len(all_stations)} stations saved to {output_file}")
 
 if __name__ == "__main__":
     main()

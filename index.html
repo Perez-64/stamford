@@ -78,7 +78,7 @@
                         <label for="radio-fx" >FX</label>
                     </fieldset>
 
-                <button type="button" onclick="clearFilters()">Reset Filters</button>
+                <button type="button" onclick="clearFilters()" id="reset-button">Reset Filters</button>
 
                 </form>
             </section>
@@ -87,10 +87,17 @@
             <section class="section-reveal">
                 <button class="reveal">Location</button>
                 
-                <div class="content">
-                    <p>some text</p>
-                    <p>lorem is </p>
-                </div>
+                <form class="content" autocomplete="off">
+                    <label for="state-search">Search States</label>
+                    <input type="text" id="state-search" class="search" placeholder="Search states..." autocomplete="off" />
+                    <ul id="state-list" class="hidden dropdown-list">
+                        </ul>
+                    
+                    <label for="city-search">Search Cities</label>
+                    <input type="text" id="city-search" class="search" placeholder="Search cities..." autocomplete="off" />
+                    <ul id="city-list" class="hidden dropdown-list">
+                        </ul>
+                </form>
             <!-- -->
             </section>
             <section class="section-reveal">
